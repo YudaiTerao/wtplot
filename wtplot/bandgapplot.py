@@ -1,20 +1,20 @@
 
 """
 Usage:
-    bandgapplot.py <wt_in> [<gap_dat>...] [-e <Enelim>] [-c <gap_cutoff>] [-m <markersize>] [-l <lim>] [--bz]
+    bandgapplot.py <wt_in> [<gap_dat>...] [-x <xlim>] [-y <ylim>] [-z <zlim>] [-e <Enelim>] [-c <gap_cutoff>] [-m <markersize>]
+    bandgapplot.py <wt_in> [<gap_dat>...] [--bz] [-e <Enelim>] [-c <gap_cutoff>] [-m <markersize>]
 
 Options:
     <wt_in>             wtのinput
     <gap_dat>           wtで計算したbandgapのdatfile
-    -m <markersize>     データ点のsize  [default: 2]
+    --bz                brillanzone内を埋め尽くすように表示
+    -x <xlim>           x座標の範囲, k点を複製し領域を埋め尽くすように表示
+    -y <ylim>           y座標の範囲, k点を複製し領域を埋め尽くすように表示
+    -z <zlim>           z座標の範囲, k点を複製し領域を埋め尽くすように表示
+    -e <Enelim>         gapの存在するEnergyの範囲, min,maxで指定  [default: -100,100 ]
     -c <gap_cutoff>     Energy gapのcutoff  [default: 0.02]
-    -x <xlim>
-    -y <ylim>
-    -z <zlim>
-    -e <Enelim>         Energyの範囲, min,maxで指定  [default: -100,100 ]
+    -m <markersize>     データ点のsize  [default: 2]
 
-    -l <lim>            データ点の範囲, 範囲内を埋め尽くすように表示, -1,1/-1.3,1,3/-2,2 のように指定
-    --bz                 brillanzone内を埋め尽くすように表示
 """
 from docopt import docopt
 import numpy as np
@@ -23,16 +23,14 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import BZplot as Bp
 import plottool as pt
-pt.mpl_init()
 
+pt.mpl_init()
 
 def read_gapdat(file_gapdat, enelim, gap_cutoff):
     df=pd.read_table(file_gapdat, header=None, skiprows=1, \
                      delim_whitespace = True, \
-                     names=["kx", "ky", "kz", "gap", "Ev", "Ec", "k1", "k2", "k3"], \
-                     dtype={"kx" :np.float32, "ky":np.float32, "kz":np.float32, \
-                            "gap":np.float32, "Ev":np.float32, "Ec":np.float32, \
-                            "k1" :np.float32, "k2":np.float32, "k3":np.float32 } \
+                     names=["kx", "ky", "kz", "gap", "Ev", "Ec", "k1", \
+                            "k2", "k3"], dtype='f8'
     )
 
     df=df[ df['gap'] <= gap_cutoff ]
@@ -42,11 +40,6 @@ def read_gapdat(file_gapdat, enelim, gap_cutoff):
     k=[ df["{}".format(kn)].to_list() for kn in ["kx", "ky", "kz"] ]
     Ene=df["Ev"].to_list()
     return k, Ene
-
-def plot_gapdat(ax, fig, k, Ene, markerSize):
-    cm = plt.cm.get_cmap('RdYlBu')
-    mappable=ax.scatter(k[0], k[1], k[2], c=Ene, cmap=cm, s=markerSize)
-    fig.colorbar(mappable, ax=ax)
 
 def convertinBZ(k: np.ndarray, kcell):
     #与えられたk点とそれの逆格子ベクトルだけ平行移動したk点のノルムを比較し、
@@ -64,64 +57,86 @@ def convertinBZ(k: np.ndarray, kcell):
                     kabs = np.linalg.norm(newkp)
     return newk
 
-def Klimit(k, E, kcell, xlim, ylim, zlim):
+def copyKpoints(K: np.ndarray, kcell: np.ndarray, shift_num, E=[]):
+    #与えられたk点を逆格子分だけずらして複製する
+    #複製する範囲はmeshgridで決まる.
+    #shiftnum: k点を逆格子±n個分だけずらす
+    x = np.arange(-1*shift_num, shift_num+1, 1)
+    y = np.arange(-1*shift_num, shift_num+1, 1)
+    z = np.arange(-1*shift_num, shift_num+1, 1)
+
+    m = np.array(np.meshgrid(x, y, z))
+    m = m.reshape([3,-1]).T
+
+    K = K.T
+    for i, x in enumerate(m):
+        if i == 0: newK = K - np.matmul(x, kcell)
+        newK = np.append(newK, K - np.matmul(x, kcell)).reshape([-1, 3])
+        if len(E) == len(K):
+            if i == 0: newE = E.copy()
+            newE = np.append(newE, E)
+        if i == 1: print(newK)
+    return newK.T, newE
+
+def Klimit(K, E, kcell, xlim, ylim, zlim):
     #与えられたk点とそれの逆格子ベクトルだけ平行移動した等価なk点をlistに入れ、
     #そのlist内で
-    newk, Ene = [], []
-    for i in range(len(k[0])):
-        newkp = k[:, i].copy()
-        for lv in kcell :
-            for sgn in [-1, 1] :
-                newkp = np.append(newkp, newkp[:3] + sgn * lv)
-                for lv2 in kcell :
-                    if ( lv == lv2 ).all() : continue
-                    for sgn2 in [-1, 1] :
-                        newkp = np.append(newkp, newkp[:3] + sgn * lv + sgn2 * lv2)
-        newkp = newkp.reshape(-1,3)
-        for nkp in newkp :
-            if ( xlim[0] <= nkp[0] <= xlim[1] ) and \
-               ( ylim[0] <= nkp[1] <= ylim[1] ) and \
-               ( zlim[0] <= nkp[2] <= zlim[1] ) :
-                newk.append(nkp)
-                Ene.append(E[i])
-    newk = np.array(newk)
-    return [ newk[:, 0], newk[:, 1], newk [:, 2] ], Ene
+    K, E = copyKpoints(K, kcell, 2, E=E)
+    newK, newE = [], []
+    for kp, ene in zip(K.T, E):
+        if ( xlim[0] <= kp[0] <= xlim[1] ) and \
+           ( ylim[0] <= kp[1] <= ylim[1] ) and \
+           ( zlim[0] <= kp[2] <= zlim[1] ) :
+            newK.append(kp)
+            newE.append(ene)
+    return np.array(newK).T, np.array(newE)
 
-
+def plot_gapdat(ax, fig, k, Ene, markerSize):
+    cm = plt.cm.get_cmap('RdYlBu')
+    mappable=ax.scatter(k[0], k[1], k[2], c=Ene, cmap=cm, s=markerSize)
+    fig.colorbar(mappable, ax=ax)
 
 def main():
     args = docopt(__doc__)
+
     markersize = float(args['-m'])
-
-    fig = plt.figure(figsize=(pt.cminch(32),pt.cminch(20)))
-    ax = fig.add_axes([ 0.05, 0.1, 1, 0.9], projection='3d')
-
-    bz = Bp.BZ_input(args['<wt_in>'])
-    Bp.BZ_plot(ax, bz.kcell)
-#    Bp.kpath_plot(ax, bz.kpath, bz.kpath_name)
-#    Bp.lcvec_plot(ax, bz.kcell)
-
     enelim = [ float(e) for e in args['-e'].split(',')]
     gap_cutoff = float(args['-c'])
+
     K, Ene = [[], [], []], []
     for gap_dat in args['<gap_dat>']:
         kn, En = read_gapdat(gap_dat, enelim, gap_cutoff)
         for i in range(3): K[i] = K[i] + kn[i]
         Ene = Ene + En
 
+    #----- BZのplot -----#
+    fig = plt.figure(figsize=(pt.cminch(32),pt.cminch(20)))
+    ax = fig.add_axes([ 0.05, 0.1, 1, 0.9], projection='3d')
+
+    bz = Bp.BZ_input(args['<wt_in>'])
+    Bp.BZ_plot(ax, bz.kcell)
+
+    #----- 表示範囲に合わせてk点を複製 -----#
     if args['--bz'] == True :
         K = convertinBZ(np.array(K), bz.kcell)
     else :
-        if args['-l'] is not None : 
-            lim = args['-l'].split('/')
-            xlim = [ float(x) for x in lim[0].split(',') ]
-            ylim = [ float(y) for y in lim[1].split(',') ]
-            zlim = [ float(z) for z in lim[2].split(',') ]
+        if args['-x'] is not None or args['-y'] is not None \
+        or args['-z'] is not None:
+            if args['-x'] is not None:
+                xlim = np.array(args['-x'].split(','), dtype='f8')
+            else: xlim = [ min(K[0]), max(K[0]) ]
+            if args['-y'] is not None:
+                ylim = np.array(args['-y'].split(','), dtype='f8')
+            else: ylim = [ min(K[1]), max(K[1]) ]
+            if args['-z'] is not None:
+                zlim = np.array(args['-z'].split(','), dtype='f8')
+            else: zlim = [ min(K[2]), max(K[2]) ]
             K, Ene = Klimit(np.array(K), np.array(Ene), bz.kcell, xlim, ylim, zlim)
-    plot_gapdat(ax, fig, K, Ene, markersize)
 
+    plot_gapdat(ax, fig, K, Ene, markersize)
     ax.set_box_aspect((1,1,1))
     plt.show()
 
 if __name__=='__main__': main()
+
 
