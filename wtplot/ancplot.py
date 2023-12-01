@@ -35,20 +35,21 @@ def main():
 
     ### 表示するgraph数のカウント ###
     if args['-t'] is not None: 
-        dpT = args['-t'].split()
-        graphnum = len(dpT)
+        dpT = [ float(x) for x in args['-t'].split('-') ]
     else :
         dpT = T.copy()
-        graphnum = len(T)
+    graphnum = len(dpT)
     if args['--noahc'] != True : graphnum = graphnum + 1
 
     ##########
 
     ### graph数に応じて横幅や余白等を決める ###
-    if graphnum == 1 :   wn, hn, w, h, m, ts, ls = [1], [1], 18, 20, 2.0, 18, 24
-    elif graphnum <= 2 : wn, hn, w, h, m, ts, ls = [1, 1], [1], 30, 20, 2.5, 18, 24
-    elif graphnum <= 4 : wn, hn, w, h, m, ts, ls = [1, 1], [1, 1], 30, 20, 2.5, 15, 20
-    elif graphnum <= 6 : wn, hn, w, h, m, ts, ls = [1, 1, 1], [1, 1], 30, 20, 2.2, 12, 16
+    if   graphnum == 1 : wn, hn, w, h, m, ts, ls = [1] * 1, [1] * 1, 16, 16, 2.5, 15, 20
+    elif graphnum <= 2 : wn, hn, w, h, m, ts, ls = [1] * 2, [1] * 1, 25, 15, 3.0, 15, 20
+    elif graphnum <= 4 : wn, hn, w, h, m, ts, ls = [1] * 2, [1] * 2, 22, 20, 2.1, 12, 15
+    elif graphnum <= 6 : wn, hn, w, h, m, ts, ls = [1] * 3, [1] * 2, 30, 20, 2.1, 12, 15
+    elif graphnum <= 9 : wn, hn, w, h, m, ts, ls = [1] * 3, [1] * 3, 22, 20, 1.5, 8, 10
+    elif graphnum <= 12: wn, hn, w, h, m, ts, ls = [1] * 4, [1] * 3, 30, 20, 1.5, 8, 10
 
     ##########
 
@@ -66,10 +67,12 @@ def main():
                     title = index[1]
                 else : j = i - 1
             else : j = i
-            pt.ANCplot(axc, Ene, ANC[dyT[j]])
+
+            if i != 0 or args['--noahc'] == True:
+                pt.ANCplot(axc, Ene, ANC[dpT[j]])
+                title = index[2:][j]
 
             # plot config
-            title = index[2:][j]
             axc.tick_params('x', labelsize=ts)
             axc.tick_params('y', labelsize=ts)
             axc.xaxis.label.set_size(ls)
@@ -79,4 +82,5 @@ def main():
             ##########
 
 if __name__ == '__main__': main()
+
 

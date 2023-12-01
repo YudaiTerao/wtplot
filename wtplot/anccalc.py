@@ -1,12 +1,12 @@
 
 """
 Usage:
-    ancplot.py <ahc_dat> <axis> <T> [-r] [-s <SAVE_PATH>]
+    anccalc.py <ahc_dat> <axis> [-t <T>] [-r] [-s <SAVE_PATH>]
 
 Options:
     <ahc_dat>       ahcの計算を行ったディレクトリ
     <axis>          x,y,z
-    <T>             温度, "1-100-300"などと指定, いくつ指定してもよい [default:1-100-300]
+    -t <T>          温度, "1-100-300"などと指定, いくつ指定してもよい [default:  1-100-300]
     -r              ahcの値の正負を反転する
     -s <SAVE_PATH>  ancdatの出力名
 """
@@ -96,13 +96,14 @@ def calc_anc(Ene, AHC, T):
 
 def main():
     args = docopt(__doc__)
-    T = [ float(t) for t in args['<T>'].split('-') ]
+    print(args)
+    T = [ float(t) for t in args['-t'].split('-') ]
     ahcrow = { 'x':2, 'y':3, 'z':1 }
     Ene, AHC = wtahc.read_ahc_dat(args['<ahc_dat>'], ahcrow[args['<axis>']], args['-r'])
 
     if args['-s'] is None:
-        datname = "anc_{}_{}.dat".format(args['<axis>'], args['<T>'])
-    else: datname = "{}-anc_{}_{}.dat".format(args['-s'], args['<axis>'], args['<T>'])
+        datname = "anc_{}_{}.dat".format(args['<axis>'], args['-t'])
+    else: datname = "{}-anc_{}_{}.dat".format(args['-s'], args['<axis>'], args['-t'])
 
     df = pd.DataFrame(data = Ene, columns = ["Ene"])
     df["ahc-{}".format(args['<axis>'])] = AHC
