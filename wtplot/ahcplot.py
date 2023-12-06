@@ -27,12 +27,12 @@ def main():
     args = docopt(__doc__)
     ahcrow = { 'x':2, 'y':3, 'z':1 }
     Ene, AHC = read_ahc_dat(args['<ahc_dat>'], ahcrow[args['<axis>']], args['-r'])
-    fig, ax = pt.MakeAxesTable([1], [1], width=18, height=20, margin=2.0)
+    fig, ax = pt.MakeAxesTable([1], [1], width=16, height=16, margin=2.5)
     pt.AHCplot(ax[0][0], Ene, AHC)
-    ax[0][0].tick_params('x', labelsize=18)
-    ax[0][0].tick_params('y', labelsize=18)
-    ax[0][0].xaxis.label.set_size(24)
-    ax[0][0].yaxis.label.set_size(24)
+    ax[0][0].tick_params('x', labelsize=15)
+    ax[0][0].tick_params('y', labelsize=15)
+    ax[0][0].xaxis.label.set_size(20)
+    ax[0][0].yaxis.label.set_size(20)
     plt.show()
 
 if __name__ == '__main__': main()

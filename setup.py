@@ -3,11 +3,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="wtplot",
-    version="0.1.0",
+    version="0.2.0",
     author="Yudai Terao",
     packages=find_packages(),
     install_requires=[
-        'plottool@git+https://github.com/YudaiTerao/plottool.git'
+        'plottool@git+https://github.com/YudaiTerao/plottool.git',
         'BZplot@git+https://github.com/YudaiTerao/BZplot.git'
     ],
     entry_points={

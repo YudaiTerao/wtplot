@@ -65,7 +65,7 @@ def sfplot(ax, kp, Ene, mesh, Emax=0.3, Emin=-0.3):
     E = np.clip(E, Emin, Emax)
     ax.plot_surface(x, y, E, alpha=0.4)
 
-if __name__ == '__main__':
+def main():
     args = docopt(__doc__)
     print(args)
     kp, Ene, mesh= read_bulkek_plane_dat(args['<file_dat>'])
@@ -81,3 +81,7 @@ if __name__ == '__main__':
         sfplot(ax, kp, Ene[n], mesh)
 
     plt.show()
+
+if __name__ == '__main__': main()
+
+

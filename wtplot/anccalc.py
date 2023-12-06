@@ -19,8 +19,7 @@ from scipy.constants import *
 from matplotlib import pyplot as plt
 
 import plottool as pt
-import ahcplot as wtahc
-#import wtplot.ahcplot as wtahc
+import wtplot.ahcplot as wtahc
 
 pt.mpl_init()
 cosh_cutoff=200
